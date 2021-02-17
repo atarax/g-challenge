@@ -11,9 +11,8 @@ class StoreBase(BaseModel):
 class StoreCreate(StoreBase):
     pass
 
-
 # Properties to receive on item update
-class StoreUpdate(ItemBase):
+class StoreUpdate(StoreBase):
     pass
 
 

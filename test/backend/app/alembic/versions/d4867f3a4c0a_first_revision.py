@@ -48,14 +48,14 @@ def upgrade():
     op.create_table(
         "brand",
         sa.Column("id", sa.Integer(), nullable=False),
-        sa.Column("name", sa.String(), nullable=False),
+        sa.Column("name", sa.String(), nullable=False, unique=True),
         sa.PrimaryKeyConstraint("id")
     )
 
     op.create_table(
         "product_category",
         sa.Column("id", sa.Integer(), nullable=False),
-        sa.Column("name", sa.String(), nullable=False),
+        sa.Column("name", sa.String(), nullable=False, unique=True),
         sa.PrimaryKeyConstraint("id")
     )
 
@@ -69,7 +69,7 @@ def upgrade():
     op.create_table(
         "product",
         sa.Column("id", sa.Integer(), nullable=False),
-        sa.Column("name", sa.String(), nullable=False),
+        sa.Column("name", sa.String(), nullable=False, unique=True),
         sa.Column("brand_id", sa.Integer(), nullable=False),
         sa.Column("category_id", sa.Integer(), nullable=False),
         sa.ForeignKeyConstraint(["brand_id"], ["brand.id"],),

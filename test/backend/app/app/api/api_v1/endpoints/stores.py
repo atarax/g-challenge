@@ -9,85 +9,72 @@ from app.api import deps
 router = APIRouter()
 
 
-@router.get("/", response_model=List[schemas.Item])
-def read_items(
+@router.get("/", response_model=List[schemas.Store])
+def read_stores(
     db: Session = Depends(deps.get_db),
     skip: int = 0,
     limit: int = 100,
 ) -> Any:
     """
-    Retrieve items.
+    Retrieve stores.
     """
-    items = crud.item.get_multi(db, skip=skip, limit=limit)
-    return items
+    stores = crud.store.get_multi(db, skip=skip, limit=limit)
+    return stores
 
-
-@router.post("/", response_model=schemas.Item)
-def create_item(
+@router.post("/", response_model=schemas.Store)
+def create_store(
     *,
     db: Session = Depends(deps.get_db),
-    item_in: schemas.ItemCreate,
-    current_user: models.User = Depends(deps.get_current_active_user),
+    store_in: schemas.StoreCreate,
 ) -> Any:
     """
-    Create new item.
+    Create new store.
     """
-    item = crud.item.create_with_owner(db=db, obj_in=item_in, owner_id=current_user.id)
-    return item
+    store = crud.store.create(db=db, obj_in=store_in)
+    return store
 
-
-@router.put("/{id}", response_model=schemas.Item)
-def update_item(
+@router.put("/{id}", response_model=schemas.Store)
+def update_store(
     *,
     db: Session = Depends(deps.get_db),
     id: int,
-    item_in: schemas.ItemUpdate,
-    current_user: models.User = Depends(deps.get_current_active_user),
+    store_in: schemas.StoreUpdate,
 ) -> Any:
     """
-    Update an item.
+    Update a store.
     """
-    item = crud.item.get(db=db, id=id)
-    if not item:
-        raise HTTPException(status_code=404, detail="Item not found")
-    if not crud.user.is_superuser(current_user) and (item.owner_id != current_user.id):
-        raise HTTPException(status_code=400, detail="Not enough permissions")
-    item = crud.item.update(db=db, db_obj=item, obj_in=item_in)
-    return item
+    store = crud.store.get(db=db, id=id)
+    if not store:
+        raise HTTPException(status_code=404, detail="Store not found")
+    store = crud.store.update(db=db, db_obj=store, obj_in=store_in)
+    return store
 
-
-@router.get("/{id}", response_model=schemas.Item)
-def read_item(
+@router.get("/{id}", response_model=schemas.Store)
+def read_store(
     *,
     db: Session = Depends(deps.get_db),
     id: int,
-    current_user: models.User = Depends(deps.get_current_active_user),
 ) -> Any:
     """
-    Get item by ID.
+    Get store by ID.
     """
-    item = crud.item.get(db=db, id=id)
-    if not item:
-        raise HTTPException(status_code=404, detail="Item not found")
-    if not crud.user.is_superuser(current_user) and (item.owner_id != current_user.id):
-        raise HTTPException(status_code=400, detail="Not enough permissions")
-    return item
+    store = crud.store.get(db=db, id=id)
+    if not store:
+        raise HTTPException(status_code=404, detail="Store not found")
+    return store
 
-
-@router.delete("/{id}", response_model=schemas.Item)
-def delete_item(
+@router.delete("/{id}", response_model=schemas.Store)
+def delete_store(
     *,
     db: Session = Depends(deps.get_db),
     id: int,
-    current_user: models.User = Depends(deps.get_current_active_user),
 ) -> Any:
     """
-    Delete an item.
+    Delete a store.
     """
-    item = crud.item.get(db=db, id=id)
-    if not item:
-        raise HTTPException(status_code=404, detail="Item not found")
-    if not crud.user.is_superuser(current_user) and (item.owner_id != current_user.id):
-        raise HTTPException(status_code=400, detail="Not enough permissions")
-    item = crud.item.remove(db=db, id=id)
-    return item
+    store = crud.store.get(db=db, id=id)
+    if not store:
+        raise HTTPException(status_code=404, detail="Store not found")
+    store = crud.store.remove(db=db, id=id)
+    return store
+
