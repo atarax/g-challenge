@@ -1,0 +1,302 @@
+networks:
+  traefik-public:
+    external: false
+services:
+  backend:
+    build:
+      args:
+        INSTALL_DEV: "true"
+      context: /home/cite/fastapi-test/test/backend
+      dockerfile: backend.dockerfile
+    depends_on:
+    - db
+    deploy:
+      labels:
+      - traefik.enable=true
+      - traefik.constraint-label-stack=test.com
+      - traefik.http.routers.test-com-backend-http.rule=PathPrefix(`/api`) || PathPrefix(`/docs`)
+        || PathPrefix(`/redoc`)
+      - traefik.http.services.test-com-backend.loadbalancer.server.port=80
+    environment:
+      BACKEND_CORS_ORIGINS: '["http://localhost", "http://localhost:4200", "http://localhost:3000",
+        "http://localhost:8080", "https://localhost", "https://localhost:4200", "https://localhost:3000",
+        "https://localhost:8080", "http://dev.test.com", "https://stag.test.com",
+        "https://test.com", "http://local.dockertoolbox.tiangolo.com", "http://localhost.tiangolo.com"]'
+      DOCKER_IMAGE_BACKEND: backend
+      DOCKER_IMAGE_CELERYWORKER: celeryworker
+      DOCKER_IMAGE_FRONTEND: frontend
+      DOMAIN: localhost
+      EMAILS_FROM_EMAIL: info@test.com
+      FIRST_SUPERUSER: admin@test.com
+      FIRST_SUPERUSER_PASSWORD: changethis
+      FLOWER_BASIC_AUTH: admin:changethis
+      PGADMIN_DEFAULT_EMAIL: admin@test.com
+      PGADMIN_DEFAULT_PASSWORD: changethis
+      PGADMIN_LISTEN_PORT: '5050'
+      POSTGRES_DB: app
+      POSTGRES_PASSWORD: changethis
+      POSTGRES_SERVER: db
+      POSTGRES_USER: postgres
+      PROJECT_NAME: test
+      SECRET_KEY: changethis
+      SENTRY_DSN: ''
+      SERVER_HOST: https://backend
+      SERVER_NAME: backend
+      SMTP_HOST: ''
+      SMTP_PASSWORD: ''
+      SMTP_PORT: '587'
+      SMTP_TLS: "True"
+      SMTP_USER: ''
+      STACK_NAME: test-com
+      TRAEFIK_PUBLIC_NETWORK: traefik-public
+      TRAEFIK_PUBLIC_TAG: traefik-public
+      TRAEFIK_TAG: test.com
+      USERS_OPEN_REGISTRATION: "False"
+    image: backend:latest
+  celeryworker:
+    build:
+      args:
+        INSTALL_DEV: "true"
+      context: /home/cite/fastapi-test/test/backend
+      dockerfile: celeryworker.dockerfile
+    depends_on:
+    - db
+    - queue
+    environment:
+      BACKEND_CORS_ORIGINS: '["http://localhost", "http://localhost:4200", "http://localhost:3000",
+        "http://localhost:8080", "https://localhost", "https://localhost:4200", "https://localhost:3000",
+        "https://localhost:8080", "http://dev.test.com", "https://stag.test.com",
+        "https://test.com", "http://local.dockertoolbox.tiangolo.com", "http://localhost.tiangolo.com"]'
+      DOCKER_IMAGE_BACKEND: backend
+      DOCKER_IMAGE_CELERYWORKER: celeryworker
+      DOCKER_IMAGE_FRONTEND: frontend
+      DOMAIN: localhost
+      EMAILS_FROM_EMAIL: info@test.com
+      FIRST_SUPERUSER: admin@test.com
+      FIRST_SUPERUSER_PASSWORD: changethis
+      FLOWER_BASIC_AUTH: admin:changethis
+      PGADMIN_DEFAULT_EMAIL: admin@test.com
+      PGADMIN_DEFAULT_PASSWORD: changethis
+      PGADMIN_LISTEN_PORT: '5050'
+      POSTGRES_DB: app
+      POSTGRES_PASSWORD: changethis
+      POSTGRES_SERVER: db
+      POSTGRES_USER: postgres
+      PROJECT_NAME: test
+      SECRET_KEY: changethis
+      SENTRY_DSN: ''
+      SERVER_HOST: https://backend
+      SERVER_NAME: backend
+      SMTP_HOST: ''
+      SMTP_PASSWORD: ''
+      SMTP_PORT: '587'
+      SMTP_TLS: "True"
+      SMTP_USER: ''
+      STACK_NAME: test-com
+      TRAEFIK_PUBLIC_NETWORK: traefik-public
+      TRAEFIK_PUBLIC_TAG: traefik-public
+      TRAEFIK_TAG: test.com
+      USERS_OPEN_REGISTRATION: "False"
+    image: celeryworker:latest
+  db:
+    deploy:
+      placement:
+        constraints:
+        - node.labels.test-com.app-db-data == true
+    environment:
+      BACKEND_CORS_ORIGINS: '["http://localhost", "http://localhost:4200", "http://localhost:3000",
+        "http://localhost:8080", "https://localhost", "https://localhost:4200", "https://localhost:3000",
+        "https://localhost:8080", "http://dev.test.com", "https://stag.test.com",
+        "https://test.com", "http://local.dockertoolbox.tiangolo.com", "http://localhost.tiangolo.com"]'
+      DOCKER_IMAGE_BACKEND: backend
+      DOCKER_IMAGE_CELERYWORKER: celeryworker
+      DOCKER_IMAGE_FRONTEND: frontend
+      DOMAIN: localhost
+      EMAILS_FROM_EMAIL: info@test.com
+      FIRST_SUPERUSER: admin@test.com
+      FIRST_SUPERUSER_PASSWORD: changethis
+      FLOWER_BASIC_AUTH: admin:changethis
+      PGADMIN_DEFAULT_EMAIL: admin@test.com
+      PGADMIN_DEFAULT_PASSWORD: changethis
+      PGADMIN_LISTEN_PORT: '5050'
+      PGDATA: /var/lib/postgresql/data/pgdata
+      POSTGRES_DB: app
+      POSTGRES_PASSWORD: changethis
+      POSTGRES_SERVER: db
+      POSTGRES_USER: postgres
+      PROJECT_NAME: test
+      SECRET_KEY: changethis
+      SENTRY_DSN: ''
+      SMTP_HOST: ''
+      SMTP_PASSWORD: ''
+      SMTP_PORT: '587'
+      SMTP_TLS: "True"
+      SMTP_USER: ''
+      STACK_NAME: test-com
+      TRAEFIK_PUBLIC_NETWORK: traefik-public
+      TRAEFIK_PUBLIC_TAG: traefik-public
+      TRAEFIK_TAG: test.com
+      USERS_OPEN_REGISTRATION: "False"
+    image: postgres:12
+    volumes:
+    - app-db-data:/var/lib/postgresql/data/pgdata:rw
+  flower:
+    command:
+    - --broker=amqp://guest@queue:5672//
+    deploy:
+      labels:
+      - traefik.enable=true
+      - traefik.docker.network=traefik-public
+      - traefik.constraint-label=traefik-public
+      - traefik.http.routers.test-com-flower-http.rule=Host(`flower.backend`)
+      - traefik.http.routers.test-com-flower-http.entrypoints=http
+      - traefik.http.routers.test-com-flower-http.middlewares=test-com-https-redirect
+      - traefik.http.routers.test-com-flower-https.rule=Host(`flower.backend`)
+      - traefik.http.routers.test-com-flower-https.entrypoints=https
+      - traefik.http.routers.test-com-flower-https.tls=true
+      - traefik.http.routers.test-com-flower-https.tls.certresolver=le
+      - traefik.http.services.test-com-flower.loadbalancer.server.port=5555
+    environment:
+      BACKEND_CORS_ORIGINS: '["http://localhost", "http://localhost:4200", "http://localhost:3000",
+        "http://localhost:8080", "https://localhost", "https://localhost:4200", "https://localhost:3000",
+        "https://localhost:8080", "http://dev.test.com", "https://stag.test.com",
+        "https://test.com", "http://local.dockertoolbox.tiangolo.com", "http://localhost.tiangolo.com"]'
+      DOCKER_IMAGE_BACKEND: backend
+      DOCKER_IMAGE_CELERYWORKER: celeryworker
+      DOCKER_IMAGE_FRONTEND: frontend
+      DOMAIN: localhost
+      EMAILS_FROM_EMAIL: info@test.com
+      FIRST_SUPERUSER: admin@test.com
+      FIRST_SUPERUSER_PASSWORD: changethis
+      FLOWER_BASIC_AUTH: admin:changethis
+      PGADMIN_DEFAULT_EMAIL: admin@test.com
+      PGADMIN_DEFAULT_PASSWORD: changethis
+      PGADMIN_LISTEN_PORT: '5050'
+      POSTGRES_DB: app
+      POSTGRES_PASSWORD: changethis
+      POSTGRES_SERVER: db
+      POSTGRES_USER: postgres
+      PROJECT_NAME: test
+      SECRET_KEY: changethis
+      SENTRY_DSN: ''
+      SMTP_HOST: ''
+      SMTP_PASSWORD: ''
+      SMTP_PORT: '587'
+      SMTP_TLS: "True"
+      SMTP_USER: ''
+      STACK_NAME: test-com
+      TRAEFIK_PUBLIC_NETWORK: traefik-public
+      TRAEFIK_PUBLIC_TAG: traefik-public
+      TRAEFIK_TAG: test.com
+      USERS_OPEN_REGISTRATION: "False"
+    image: mher/flower
+    networks:
+      default: null
+      traefik-public: null
+  frontend:
+    build:
+      args:
+        FRONTEND_ENV: production
+      context: /home/cite/fastapi-test/test/frontend
+    deploy:
+      labels:
+      - traefik.enable=true
+      - traefik.constraint-label-stack=test.com
+      - traefik.http.routers.test-com-frontend-http.rule=PathPrefix(`/`)
+      - traefik.http.services.test-com-frontend.loadbalancer.server.port=80
+    image: frontend:latest
+  pgadmin:
+    depends_on:
+    - db
+    deploy:
+      labels:
+      - traefik.enable=true
+      - traefik.docker.network=traefik-public
+      - traefik.constraint-label=traefik-public
+      - traefik.http.routers.test-com-pgadmin-http.rule=Host(`pgadmin.backend`)
+      - traefik.http.routers.test-com-pgadmin-http.entrypoints=http
+      - traefik.http.routers.test-com-pgadmin-http.middlewares=test-com-https-redirect
+      - traefik.http.routers.test-com-pgadmin-https.rule=Host(`pgadmin.backend`)
+      - traefik.http.routers.test-com-pgadmin-https.entrypoints=https
+      - traefik.http.routers.test-com-pgadmin-https.tls=true
+      - traefik.http.routers.test-com-pgadmin-https.tls.certresolver=le
+      - traefik.http.services.test-com-pgadmin.loadbalancer.server.port=5050
+    environment:
+      BACKEND_CORS_ORIGINS: '["http://localhost", "http://localhost:4200", "http://localhost:3000",
+        "http://localhost:8080", "https://localhost", "https://localhost:4200", "https://localhost:3000",
+        "https://localhost:8080", "http://dev.test.com", "https://stag.test.com",
+        "https://test.com", "http://local.dockertoolbox.tiangolo.com", "http://localhost.tiangolo.com"]'
+      DOCKER_IMAGE_BACKEND: backend
+      DOCKER_IMAGE_CELERYWORKER: celeryworker
+      DOCKER_IMAGE_FRONTEND: frontend
+      DOMAIN: localhost
+      EMAILS_FROM_EMAIL: info@test.com
+      FIRST_SUPERUSER: admin@test.com
+      FIRST_SUPERUSER_PASSWORD: changethis
+      FLOWER_BASIC_AUTH: admin:changethis
+      PGADMIN_DEFAULT_EMAIL: admin@test.com
+      PGADMIN_DEFAULT_PASSWORD: changethis
+      PGADMIN_LISTEN_PORT: '5050'
+      POSTGRES_DB: app
+      POSTGRES_PASSWORD: changethis
+      POSTGRES_SERVER: db
+      POSTGRES_USER: postgres
+      PROJECT_NAME: test
+      SECRET_KEY: changethis
+      SENTRY_DSN: ''
+      SMTP_HOST: ''
+      SMTP_PASSWORD: ''
+      SMTP_PORT: '587'
+      SMTP_TLS: "True"
+      SMTP_USER: ''
+      STACK_NAME: test-com
+      TRAEFIK_PUBLIC_NETWORK: traefik-public
+      TRAEFIK_PUBLIC_TAG: traefik-public
+      TRAEFIK_TAG: test.com
+      USERS_OPEN_REGISTRATION: "False"
+    image: dpage/pgadmin4
+    networks:
+      default: null
+      traefik-public: null
+  proxy:
+    command:
+    - --providers.docker
+    - --providers.docker.constraints=Label(`traefik.constraint-label-stack`, `test.com`)
+    - --providers.docker.exposedbydefault=false
+    - --providers.docker.swarmmode
+    - --accesslog
+    - --log
+    - --api
+    deploy:
+      labels:
+      - traefik.enable=true
+      - traefik.docker.network=traefik-public
+      - traefik.constraint-label=traefik-public
+      - traefik.http.middlewares.test-com-https-redirect.redirectscheme.scheme=https
+      - traefik.http.middlewares.test-com-https-redirect.redirectscheme.permanent=true
+      - traefik.http.routers.test-com-proxy-http.rule=Host(`backend`) || Host(`www.backend`)
+      - traefik.http.routers.test-com-proxy-http.entrypoints=http
+      - traefik.http.routers.test-com-proxy-https.rule=Host(`backend`) || Host(`www.backend`)
+      - traefik.http.routers.test-com-proxy-https.entrypoints=https
+      - traefik.http.routers.test-com-proxy-https.tls=true
+      - traefik.http.routers.test-com-proxy-https.tls.certresolver=le
+      - traefik.http.services.test-com-proxy.loadbalancer.server.port=80
+      - traefik.http.middlewares.test-com-www-redirect.redirectregex.regex=^https?://(www.)?(backend)/(.*)
+      - traefik.http.middlewares.test-com-www-redirect.redirectregex.replacement=https://backend/$${3}
+      - traefik.http.routers.test-com-proxy-https.middlewares=test-com-www-redirect
+      - traefik.http.routers.test-com-proxy-http.middlewares=test-com-www-redirect,test-com-https-redirect
+      placement:
+        constraints:
+        - node.role == manager
+    image: traefik:v2.2
+    networks:
+      default: null
+      traefik-public: null
+    volumes:
+    - /var/run/docker.sock:/var/run/docker.sock:rw
+  queue:
+    image: rabbitmq:3
+version: '3.3'
+volumes:
+  app-db-data: {}
+
