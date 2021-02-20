@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grover-challenge
+spec:
+  selector:
+    matchLabels:
+      run: challenge-api
+  template:
+    metadata:
+      labels:
+        run: challenge-api
+    spec:
+      containers:
+      # api-container
+      - name: challenge-api
+        image: grover-challenge-api
+        # needed to use local-image with minikube
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 80
+        envFrom:
+        - configMapRef:
+            name: grover-challenge
+        env:
+          - name: SERVER_NAME
+            value: grover
+          - name: SERVER_HOST
+            value: http://grover
+      # db-container
+      - name: db
+        image: postgres:12
+        ports:
+        - containerPort: 5432
+        volumeMounts:
+        - mountPath: /var/lib/postgresql/data
+          name: pg-volume-mount
+        envFrom:
+        - configMapRef:
+            name: grover-challenge
+      volumes:
+      - name: pg-volume-mount
+        hostPath:
+          path: '/data/grover'
+      # to be able to run with default-config in this one-pod approach
+      hostAliases:
+       - ip: 127.0.0.1
+         hostnames:
+         - db

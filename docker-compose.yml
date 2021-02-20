@@ -10,8 +10,8 @@ services:
     environment:
       - PGDATA=/var/lib/postgresql/data/pgdata
 
-  backend:
-    image: '${DOCKER_IMAGE_BACKEND?Variable not set}:${TAG-latest}'
+  api:
+    image: '${DOCKER_IMAGE_API?Variable not set}:${TAG-latest}'
     depends_on:
       - db
     env_file:
@@ -19,11 +19,9 @@ services:
     environment:
       - SERVER_NAME=${DOMAIN?Variable not set}
       - SERVER_HOST=https://${DOMAIN?Variable not set}
-      # Allow explicit env var override for tests
-      - SMTP_HOST=${SMTP_HOST}
     build:
-      context: ./backend
-      dockerfile: backend.dockerfile
+      context: .
+      dockerfile: Dockerfile
       args:
         INSTALL_DEV: ${INSTALL_DEV-false}
 
